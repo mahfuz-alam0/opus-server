@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+require('dotenv').config()
 
 const port = process.env.PORT || 5000;
 
@@ -20,10 +21,42 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run() {
     try {
-        const Heading = client.db("Opus").collection("Heading");
-        app.get('/', (req, res) => {
-            res.send('Hello World!');
-        })
+        const Heading = client.db('Opus').collection('Heading');
+        const emails = client.db('Opus').collection('emails');
+
+        app.get('/heading', async (req, res) => {
+            const query = {};
+            const users = await Heading.find(query).toArray();
+            res.send(users);
+        });
+
+        app.get('/emails', async (req, res) => {
+            const query = {};
+            const users = await emails.find(query).toArray();
+            res.send(users);
+        });
+
+        app.post('/email', async (req, res) => {
+            const email = req.body;
+            
+            const stored_email = await emails.findOne({ email: email.email });
+           
+            if (stored_email?.email === email.email) {
+                res.json({ message: 'Email already exists' });
+                
+            } else {
+                const result = await emails.insertOne(email);
+                res.json(result);
+            }
+        });
+
+        app.patch('/heading/:id', async (req, res) => {
+            const query = { _id: ObjectId(req.params.id) };
+            const updateDoc = { $set: req.body };
+            const result = await Heading.updateOne(query, updateDoc);
+            res.send(result);
+        });
+        
     }
     finally {
         // await client.close();
